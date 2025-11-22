@@ -19,6 +19,7 @@ import * as Yup from "yup";
 import { apiLogin } from "../apis/authApis";
 import {
   AUTH_STORE_EMAIL,
+  AUTH_STORE_ID,
   AUTH_STORE_PASSWORD,
   AUTH_STORE_TOKEN,
   getStorage,
@@ -109,6 +110,7 @@ export default function LoginScreen() {
         await setStorage(AUTH_STORE_EMAIL, values.email);
         await setStorage(AUTH_STORE_PASSWORD, values.password);
         await setStorage(AUTH_STORE_TOKEN, res?.data?.token);
+        await setStorage(AUTH_STORE_ID, res?.data?.store_id);
 
         router.navigate("/pos" as any);
       } else {

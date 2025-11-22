@@ -8,12 +8,13 @@ type TProps = {
 export default function PosLayout(props: TProps) {
   const theme = useTheme();
 
-  
   return (
     <SafeAreaView
+      edges={['left', 'right', 'bottom']} // keep bottom safe
       style={{
         flex: 1,
         backgroundColor: theme.colors.background,
+        
       }}>
       {props.children(theme)}
     </SafeAreaView>

@@ -20,10 +20,8 @@ export const ApiGetPosProducts = async () => {
   }
 };
 
-export const ApiGetPosProductBatches = async (
-  token: string,
-  product_id: string
-) => {
+export const ApiGetPosProductBatches = async (product_id: string) => {
+  const token = await getStorage(AUTH_STORE_TOKEN);
   try {
     const url = `${api}/pos/products/${product_id}/batches`;
     const response = await fetch(url, {

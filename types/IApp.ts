@@ -15,3 +15,13 @@ export interface IApiResponse<T> {
   data: T;
   errors?: string[];
 }
+
+export interface ISimpleSelect {
+  id: string;
+  name: string;
+  image?: string;
+  icon?: any;
+  random?: any;
+  isVisible?: boolean;
+  divider?: boolean;
+}
