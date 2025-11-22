@@ -38,7 +38,8 @@ export const ApiGetPosProductBatches = async (product_id: string) => {
   }
 };
 
-export const ApiPosConfirmSale = async (token: string, param: IPosInput) => {
+export const ApiPosConfirmSale = async (param: IPosInput) => {
+  const token = await getStorage(AUTH_STORE_TOKEN);
   try {
     const url = `${api}/pos/confirm_sale`;
     const response = await fetch(url, {

@@ -8,9 +8,10 @@ import { ICollectionAccountView } from "@/types/ICollectionAccount";
 import {
   IPosDetailInput,
   IPosProductBatchView,
-  IPosProductsView,
+  IPosProductsView
 } from "@/types/IPos";
 import { IStoreView } from "@/types/IStore";
+import { Picker } from "@react-native-picker/picker";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import {
@@ -225,6 +226,80 @@ export default function PointOfSale({ theme }: Tprops) {
     setVatAmount(calcVatAmt?.toString());
     setDiscountPercentage(calcDiscountPercent?.toString());
   };
+
+//  const handleSaveTempData = () => {
+//     const tempData: IPosInput = {
+//       sale_code: salesCode,
+//       sub_total_amount: Number(subtotal),
+//       vat_percentage: Number(vat),
+//       vat_amount: Number(vatAmount),
+//       discount_percentage: Number(discountPercentage),
+//       discount_amount: Number(discountAmount),
+//       total_amount: Number(grandtotal),
+//       seller_user_id: authStore.user_id,
+//       seller_fullname: `${authStore.firstname} ${authStore.lastname}`,
+//       store_name: authStore.store_name,
+//       created_by: authStore.user_id,
+//       device_id: "",
+//       payment_channel: paymentChannel,
+//       collection_account_id: accountItem?.collection_account_id,
+//       paid_amount: Number(paidAmount),
+//       sale_date: new Date().toISOString(),
+//       currency_code: authStore.currency_code,
+//       sale_details: previewList,
+//     };
+//     return tempData;
+//   };
+
+
+  // const handleConfirmSales = async () => {
+  //   setSaving(true);
+
+  //   try {
+  //     const payload = handleSaveTempData();
+
+  //     if (payload.paid_amount < 1) {
+  //       enqueueSnackbar("Please enter the paid amount", {
+  //         variant: "default",
+  //         anchorOrigin: { vertical: "top", horizontal: "center" },
+  //       });
+  //       return;
+  //     }
+
+  //     if (
+  //       paymentChannel !== paymentChannels[0].id &&
+  //       accountList?.length > 0 &&
+  //       !payload.collection_account_id
+  //     ) {
+  //       enqueueSnackbar("Please select collection account", {
+  //         variant: "default",
+  //         anchorOrigin: { vertical: "top", horizontal: "center" },
+  //       });
+  //       return;
+  //     }
+
+  //     const res: IApiResponse<any> = await ApiPosConfirmSale(payload);
+
+  //     if (res.status === "success") {
+  //       setReceipt(res.message);
+  //       setDialogReceipt(true);
+  //       handleClearAll();
+  //     } else {
+  //       errorHandlerHelper(res, dispatch, authStore.email);
+  //     }
+  //   } catch (error) {
+  //     enqueueSnackbar(
+  //       "Something went wrong. Please check your internet and try again",
+  //       {
+  //         variant: "default",
+  //         anchorOrigin: { vertical: "top", horizontal: "center" },
+  //       }
+  //     );
+  //   } finally {
+  //     setSaving(false);
+  //     setSalesCode(generateCode(6));
+  //   }
+  // };
 
   const fetchStore = async () => {
     setStoreLoading(true);
@@ -622,29 +697,36 @@ export default function PointOfSale({ theme }: Tprops) {
               flexDirection: "column",
               gap: 10,
             }}>
-            <View
+            {/* <View
               style={{
                 flexDirection: "row",
                 gap: 10,
-              }}>
+              }}> */}
+            <View>
               <TextInput
                 mode="outlined"
                 label="Subtotal"
                 outlineColor="transparent"
+                style={{
+                  backgroundColor: (theme.colors as any).backgroundPaper,
+                }}
                 value={subtotal}
-                disabled
-                style={{ flex: 1 }}
+                editable={false}
+                // style={{ flex: 1 }}
               />
+            </View>
 
+            <View>
               <TextInput
                 mode="outlined"
                 label="V.A.T"
                 outlineColor="transparent"
                 value={vat}
-                disabled
-                style={{ flex: 1 }}
+                editable={false}
+                // style={{ flex: 1 }}
               />
             </View>
+            {/* </View> */}
 
             <View>
               <TextInput
@@ -652,7 +734,7 @@ export default function PointOfSale({ theme }: Tprops) {
                 label="Total + V.A.T"
                 outlineColor="transparent"
                 value={grandtotal}
-                disabled
+                editable={false}
               />
             </View>
             <View>
@@ -697,6 +779,13 @@ export default function PointOfSale({ theme }: Tprops) {
               </Menu>
             </View>
             <View>
+              <Picker
+                selectedValue={paymentChannel}
+                onValueChange={(val, idx) => setPaymentChannel(val)}>
+                {paymentChannels?.map((i) => (
+                  <Picker.Item key={i?.id} value={i?.id} label={i.name} />
+                ))}
+              </Picker>
               <Menu
                 visible={menuPaymentChannel}
                 onDismiss={() => setMenuPaymentChannel(false)}
@@ -753,7 +842,7 @@ export default function PointOfSale({ theme }: Tprops) {
                   justifyContent: "center",
                   backgroundColor: (theme.colors as any).warning,
                 }}>
-                <Text style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>
+                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                   Hold
                 </Text>
               </Button>
@@ -767,7 +856,7 @@ export default function PointOfSale({ theme }: Tprops) {
                   justifyContent: "center",
                   backgroundColor: (theme.colors as any).error,
                 }}>
-                <Text style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>
+                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                   Clear
                 </Text>
               </Button>
@@ -781,7 +870,7 @@ export default function PointOfSale({ theme }: Tprops) {
                   justifyContent: "center",
                   backgroundColor: (theme.colors as any).success,
                 }}>
-                <Text style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>
+                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                   Confirm
                 </Text>
               </Button>
