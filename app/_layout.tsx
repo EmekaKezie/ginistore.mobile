@@ -60,15 +60,17 @@ function RootLayoutNav() {
         <PaperProvider theme={theme}>
           <Stack>
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="(navtabs)" options={{ headerShown: false }} />
+
             {/* <Stack.Screen name="index" options={{ headerShown: false }} /> */}
 
-            <Stack.Screen
+            {/* <Stack.Screen
               name="pos"
               options={{
                 headerShown: false,
                 //animation: "slide_from_bottom",
               }}
-            />
+            /> */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             {/* <Stack.Screen name="modal" options={{ presentation: "modal" }} /> */}
           </Stack>

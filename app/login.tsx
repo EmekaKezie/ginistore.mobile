@@ -122,7 +122,8 @@ export default function LoginScreen() {
         };
         dispatch(onLogin(authStore));
 
-        router.navigate("/pos" as any);
+        //router.navigate("/pos" as any);
+        router.navigate("/(navtabs)" as const);
       } else {
         console.log("falied", res.data);
       }
