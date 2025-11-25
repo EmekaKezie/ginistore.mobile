@@ -29,6 +29,7 @@ export default function NavTabsLayout() {
         name="pos"
         options={{
           title: "Point of Sale",
+          
           headerShown: false,
           tabBarIcon: () => <Icon source={"shopping-outline"} size={25} />,
         }}

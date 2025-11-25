@@ -518,7 +518,7 @@ export default function PointOfSale({ theme }: Tprops) {
 
   const renderProductList = () => {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{}}>
         <View
           style={{
             flexDirection: "row",
@@ -680,7 +680,7 @@ export default function PointOfSale({ theme }: Tprops) {
 
   const renderProductPreview = () => {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{}}>
         <View
           style={{
             //paddingHorizontal: 15,
@@ -865,130 +865,90 @@ export default function PointOfSale({ theme }: Tprops) {
             paddingHorizontal: 15,
             display: "flex",
             flexDirection: "column",
+            gap: 10,
           }}>
           <View
             style={{
-              flexGrow: 1,
               display: "flex",
               flexDirection: "column",
-              gap: 20,
+              gap: 10,
+              padding: 15,
+              backgroundColor: (theme.colors as any).backgroundPaper,
+              borderRadius: 20,
             }}>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                padding: 15,
-                backgroundColor: (theme.colors as any).backgroundPaper,
-                borderRadius: 20,
-              }}>
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="Subtotal"
-                  outlineColor="transparent"
-                  value={subtotal}
-                  editable={false}
-                  left={
-                    <TextInput.Affix
-                      text={renderCurrencySymbol(
-                        storeItem?.currency_code ?? ""
-                      )}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-              </View>
-
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="V.A.T"
-                  outlineColor="transparent"
-                  value={vat}
-                  editable={false}
-                  left={
-                    <TextInput.Affix
-                      text={"%"}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-              </View>
-
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="Total + V.A.T"
-                  outlineColor="transparent"
-                  value={grandtotal}
-                  editable={false}
-                  left={
-                    <TextInput.Affix
-                      text={renderCurrencySymbol(
-                        storeItem?.currency_code ?? ""
-                      )}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-              </View>
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="Balance"
-                  outlineColor="transparent"
-                  value={balance}
-                  editable={false}
-                  left={
-                    <TextInput.Affix
-                      text={renderCurrencySymbol(
-                        storeItem?.currency_code ?? ""
-                      )}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-              </View>
+            <View>
+              <TextInput
+                mode="outlined"
+                label="Subtotal"
+                outlineColor="transparent"
+                value={subtotal}
+                editable={false}
+                left={
+                  <TextInput.Affix
+                    text={renderCurrencySymbol(storeItem?.currency_code ?? "")}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
             </View>
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                padding: 15,
-                backgroundColor: (theme.colors as any).backgroundPaper,
-                borderRadius: 20,
-              }}>
-              <View>
-                <View
-                  style={{
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.primary,
-                  }}>
-                  <Picker
-                    selectedValue={accountSelected}
-                    onValueChange={(val, idx) => {
-                      setAccountSelected(val);
-                      setAccountSelectedErr("");
-                    }}
-                    style={{ color: theme.colors.surface }}>
-                    <Picker.Item value={""} label="Select collection account" />
-                    {accountList?.map((i) => (
-                      <Picker.Item
-                        key={i?.collection_account_id}
-                        value={i?.collection_account_id}
-                        label={i.account_name}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-                {accountSelectedErr && (
-                  <HelperText type="error">{accountSelectedErr}</HelperText>
-                )}
-              </View>
+
+            <View>
+              <TextInput
+                mode="outlined"
+                label="V.A.T"
+                outlineColor="transparent"
+                value={vat}
+                editable={false}
+                left={
+                  <TextInput.Affix
+                    text={"%"}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
+            </View>
+
+            <View>
+              <TextInput
+                mode="outlined"
+                label="Total + V.A.T"
+                outlineColor="transparent"
+                value={grandtotal}
+                editable={false}
+                left={
+                  <TextInput.Affix
+                    text={renderCurrencySymbol(storeItem?.currency_code ?? "")}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
+            </View>
+            <View>
+              <TextInput
+                mode="outlined"
+                label="Balance"
+                outlineColor="transparent"
+                value={balance}
+                editable={false}
+                left={
+                  <TextInput.Affix
+                    text={renderCurrencySymbol(storeItem?.currency_code ?? "")}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
+            </View>
+          </View>
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              padding: 15,
+              backgroundColor: (theme.colors as any).backgroundPaper,
+              borderRadius: 20,
+            }}>
+            <View>
               <View
                 style={{
                   borderWidth: 1,
@@ -997,51 +957,74 @@ export default function PointOfSale({ theme }: Tprops) {
                   borderColor: theme.colors.primary,
                 }}>
                 <Picker
-                  selectedValue={paymentChannel}
-                  onValueChange={(val, idx) => setPaymentChannel(val)}
+                  selectedValue={accountSelected}
+                  onValueChange={(val, idx) => {
+                    setAccountSelected(val);
+                    setAccountSelectedErr("");
+                  }}
                   style={{ color: theme.colors.surface }}>
-                  <Picker.Item value={""} label="Select payment method" />
-                  {paymentChannels?.map((i) => (
-                    <Picker.Item key={i?.id} value={i?.id} label={i.name} />
+                  <Picker.Item value={""} label="Select collection account" />
+                  {accountList?.map((i) => (
+                    <Picker.Item
+                      key={i?.collection_account_id}
+                      value={i?.collection_account_id}
+                      label={i.account_name}
+                    />
                   ))}
                 </Picker>
               </View>
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="Discount Amount"
-                  value={discountAmount}
-                  onChangeText={(val) => setDiscountAmount(val)}
-                  left={
-                    <TextInput.Affix
-                      text={renderCurrencySymbol(
-                        storeItem?.currency_code ?? ""
-                      )}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-              </View>
-              <View>
-                <TextInput
-                  mode="outlined"
-                  label="Paid Amount"
-                  value={paidAmount}
-                  onChangeText={(val) => setPaidAmount(val)}
-                  onTouchStart={() => setPaidAmountErr("")}
-                  left={
-                    <TextInput.Affix
-                      text={renderCurrencySymbol(
-                        storeItem?.currency_code ?? ""
-                      )}
-                      textStyle={{ color: theme.colors.surfaceVariant }}
-                    />
-                  }
-                />
-                {paidAmountErr && (
-                  <HelperText type="error">{paidAmountErr}</HelperText>
-                )}
-              </View>
+              {accountSelectedErr && (
+                <HelperText type="error">{accountSelectedErr}</HelperText>
+              )}
+            </View>
+            <View
+              style={{
+                borderWidth: 1,
+                borderRadius: 5,
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.primary,
+              }}>
+              <Picker
+                selectedValue={paymentChannel}
+                onValueChange={(val, idx) => setPaymentChannel(val)}
+                style={{ color: theme.colors.surface }}>
+                <Picker.Item value={""} label="Select payment method" />
+                {paymentChannels?.map((i) => (
+                  <Picker.Item key={i?.id} value={i?.id} label={i.name} />
+                ))}
+              </Picker>
+            </View>
+            <View>
+              <TextInput
+                mode="outlined"
+                label="Discount Amount"
+                value={discountAmount}
+                onChangeText={(val) => setDiscountAmount(val)}
+                left={
+                  <TextInput.Affix
+                    text={renderCurrencySymbol(storeItem?.currency_code ?? "")}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
+            </View>
+            <View>
+              <TextInput
+                mode="outlined"
+                label="Paid Amount"
+                value={paidAmount}
+                onChangeText={(val) => setPaidAmount(val)}
+                onTouchStart={() => setPaidAmountErr("")}
+                left={
+                  <TextInput.Affix
+                    text={renderCurrencySymbol(storeItem?.currency_code ?? "")}
+                    textStyle={{ color: theme.colors.surfaceVariant }}
+                  />
+                }
+              />
+              {paidAmountErr && (
+                <HelperText type="error">{paidAmountErr}</HelperText>
+              )}
             </View>
           </View>
           <View
