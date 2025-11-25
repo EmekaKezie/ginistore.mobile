@@ -5,6 +5,7 @@ import {
   ApiGetPosProducts,
   ApiPosConfirmSale,
 } from "@/apis/posApi";
+import { renderCurrencySymbol } from "@/core/helpers/currencyHelpers";
 import { generateCode } from "@/core/helpers/ecryptiontHelper";
 import { paymentChannels } from "@/data/constants";
 import { useAppDispatch, useAppSelector } from "@/redux/useReduxhooks";
@@ -18,16 +19,30 @@ import {
 } from "@/types/IPos";
 import { IStoreView } from "@/types/IStore";
 import { Picker } from "@react-native-picker/picker";
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Alert,
+  findNodeHandle,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Modal from "react-native-modal";
+import {
+  ActivityIndicator,
   Button,
+  HelperText,
   IconButton,
   MD3Theme,
-  Menu,
   Text,
   TextInput,
 } from "react-native-paper";
+import { captureRef } from "react-native-view-shot";
+import WebView from "react-native-webview";
 import PointOfSaleHeader from "./PointOfSaleHeader";
 
 type TScreen = "screen1" | "screen2" | "screen3";
@@ -60,8 +75,8 @@ export default function PointOfSale({ theme }: Tprops) {
   const [storeItem, setStoreItem] = useState<IStoreView>();
   const [storeLoading, setStoreLoading] = useState(false);
   const [accountList, setAccountList] = useState<ICollectionAccountView[]>([]);
-  const [accountItem, setAccountItem] =
-    useState<ICollectionAccountView>(initAcct);
+  const [accountSelected, setAccountSelected] = useState("");
+  const [accountSelectedErr, setAccountSelectedErr] = useState("");
   const [accountLoading, setAccountLoading] = useState(false);
   const [screen, setScreen] = useState<TScreen>("screen1");
   const [productList1, setProductList1] = useState<IPosProductsView[]>([]);
@@ -81,20 +96,25 @@ export default function PointOfSale({ theme }: Tprops) {
   const [subtotal, setSubtotal] = useState<string>("");
   const [grandtotal, setGrandtotal] = useState<string>("");
   const [balance, setBalance] = useState<string>("");
-  const [paidAmount, setPaidAmount] = useState<string>("");
-  const [discountAmount, setDiscountAmount] = useState<string>("");
+  const [paidAmount, setPaidAmount] = useState<string>("0");
+  const [paidAmountErr, setPaidAmountErr] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<string>("0");
   const [discountPercentage, setDiscountPercentage] = useState<string>("");
   const [vatAmount, setVatAmount] = useState<string>("");
   const [salesCode, setSalesCode] = useState(generateCode(6));
   const [paymentChannel, setPaymentChannel] = useState("");
   const [vat, setVat] = useState("");
   const [saving, setSaving] = useState<boolean>(false);
-  const [receipt, setReceipt] = useState<string>("");
-  const [dialogReceipt, setDialogReceipt] = useState<boolean>(false);
+  const [receipt, setReceipt] = useState<any>();
+  const receiptRef = useRef<View>(null);
   const [dialogMore, setDialogMore] = useState<boolean>(false);
   const [dialogSetting, setDialogSetting] = useState(false);
   const [menuPaymentChannel, setMenuPaymentChannel] = useState(false);
   const [menuCollectionAcct, setMenuCollectionAcct] = useState(false);
+
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const openBottomSheet = () => setBottomSheetOpen(true);
+  const closeBottomSheet = () => setBottomSheetOpen(false);
 
   useEffect(() => {
     fetchStore();
@@ -275,7 +295,7 @@ export default function PointOfSale({ theme }: Tprops) {
       created_by: authStore.user_id,
       device_id: "",
       payment_channel: paymentChannel,
-      collection_account_id: accountItem?.collection_account_id,
+      collection_account_id: accountSelected,
       paid_amount: Number(paidAmount),
       sale_date: new Date().toISOString(),
       currency_code: authStore.currency_code,
@@ -287,11 +307,14 @@ export default function PointOfSale({ theme }: Tprops) {
   const handleClearAll = () => {
     setProductSelected([]);
     setPreviewList([]);
-    setAccountItem(initAcct);
+    setAccountSelected("");
     setPaidAmount("");
     setDiscountAmount("");
     setDiscountPercentage("");
     setSalesCode(generateCode(6));
+    setReceipt("");
+    setBottomSheetOpen(false);
+    setScreen("screen1");
   };
 
   const handleConfirmSales = async () => {
@@ -301,12 +324,7 @@ export default function PointOfSale({ theme }: Tprops) {
       const payload = handleSaveTempData();
 
       if (payload.paid_amount < 1) {
-        // enqueueSnackbar("Please enter the paid amount", {
-        //   variant: "default",
-        //   anchorOrigin: { vertical: "top", horizontal: "center" },
-        // });
-
-        console.log("Please enter the paid amount");
+        setPaidAmountErr("Please enter the paid amount");
         return;
       }
 
@@ -315,36 +333,53 @@ export default function PointOfSale({ theme }: Tprops) {
         accountList?.length > 0 &&
         !payload.collection_account_id
       ) {
-        // enqueueSnackbar("Please select collection account", {
-        //   variant: "default",
-        //   anchorOrigin: { vertical: "top", horizontal: "center" },
-        // });
-
+        setAccountSelectedErr("Please select collection account");
         return;
       }
-
       const res: IApiResponse<any> = await ApiPosConfirmSale(payload);
       if (res.status === "success") {
         setReceipt(res.message);
-        setDialogReceipt(true);
-        handleClearAll();
-        setScreen("screen1");
+        setBottomSheetOpen(true);
+        //handleClearAll();
+        //setScreen("screen1");
       } else {
-        console.log(res);
-        //errorHandlerHelper(res, dispatch, authStore.email);
+        Alert.alert("Failed", res?.message);
       }
     } catch (error) {
-      // enqueueSnackbar(
-      //   "Something went wrong. Please check your internet and try again",
-      //   {
-      //     variant: "default",
-      //     anchorOrigin: { vertical: "top", horizontal: "center" },
-      //   }
-      // );
-      console.log(error);
+      Alert.alert(
+        "Error",
+        "Something went wrong. Please check your internet and try again"
+      );
     } finally {
       setSaving(false);
       setSalesCode(generateCode(6));
+    }
+  };
+
+  const handleShareReceiptAsImage = async () => {
+    try {
+      const node = findNodeHandle(receiptRef.current);
+      if (!node) return;
+
+      const uri = await captureRef(node, {
+        format: "png",
+        quality: 1,
+      });
+
+      await Sharing.shareAsync(uri);
+      handleClearAll();
+    } catch (error) {
+      console.log("Error capturing:", error);
+    }
+  };
+
+  const handleShareReceiptAsPDF = async () => {
+    try {
+      const { uri } = await Print.printToFileAsync({ html: receipt });
+      await Sharing.shareAsync(uri);
+      handleClearAll();
+    } catch (error) {
+      console.log("Error capturing:", error);
     }
   };
 
@@ -426,10 +461,43 @@ export default function PointOfSale({ theme }: Tprops) {
 
   const handleRenderContent = () => {
     if (productLoading) {
-      return <Text>Loading</Text>;
+      return (
+        <View
+          style={{
+            flex: 1,
+            //backgroundColor: "rgba(0,0,0,0.1)", // Transparent black
+            justifyContent: "center",
+            alignItems: "center",
+          }}>
+          <View>
+            <ActivityIndicator size="large" />
+            <Text>Loading products...</Text>
+          </View>
+        </View>
+      );
     } else {
       if (productList1?.length < 1) {
-        return <Text>No Products found</Text>;
+        return (
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 10,
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={productRefresh}
+                onRefresh={onProductRefresh}
+              />
+            }
+            style={{ flex: 1 }}>
+            <Text variant="bodyLarge">No Products found</Text>
+            <Text style={{ color: theme.colors.surfaceDisabled, fontSize: 12 }}>
+              Swipe down to refresh
+            </Text>
+          </ScrollView>
+        );
       } else {
         return renderContent();
       }
@@ -453,16 +521,17 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingHorizontal: 15,
             flexDirection: "row",
             alignItems: "center",
           }}>
-          <View style={{ flexGrow: 1 }}>
+          <View style={{ flexGrow: 1, paddingLeft: 15 }}>
             <PointOfSaleHeader theme={theme} />
           </View>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {previewList?.length > 0 && (
-              <Text>{previewList?.length} Selected</Text>
+              <Text onPress={handleGoToPointOfSale2}>
+                {previewList?.length} Selected
+              </Text>
             )}
             <IconButton
               icon={"chevron-right"}
@@ -473,9 +542,6 @@ export default function PointOfSale({ theme }: Tprops) {
         </View>
         <View
           style={{
-            //backgroundColor: (theme.colors as any).backgroundPaper,
-            // borderWidth: 1,
-            //borderRadius: 50,
             marginBottom: 10,
           }}>
           <TextInput
@@ -493,50 +559,14 @@ export default function PointOfSale({ theme }: Tprops) {
               )
             }
             theme={{
-              roundness: 30, // important
+              roundness: 30,
             }}
             style={{
               backgroundColor: (theme.colors as any).backgroundPaper,
-              //borderRadius: 30, // matches theme.roundness
               marginHorizontal: 15,
-              //borderWidth: 1,
             }}
           />
         </View>
-        {/* <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
-          <TouchableRipple
-            onPress={handleGoToPointOfSale2}
-            borderless
-            rippleColor="rgba(255,255,255,0.2)"
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: theme.colors.primary,
-              paddingLeft: 15,
-              borderRadius: 50,
-              alignSelf: "flex-start",
-              marginLeft: "auto",
-            }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-              }}>
-              <Text style={{ color: "white", fontSize: 12, marginRight: 4 }}>
-                {productSelected?.length} Selected
-              </Text>
-              <IconButton
-                icon="chevron-right"
-                size={16}
-                style={{ margin: 0 }}
-                iconColor="white"
-              />
-            </View>
-          </TouchableRipple>
-        </View> */}
-        {/* <Text>Product List</Text>
-        <Button onPress={handleGoToPointOfSale2}>Next</Button> */}
-
         <ScrollView
           refreshControl={
             <RefreshControl
@@ -555,30 +585,12 @@ export default function PointOfSale({ theme }: Tprops) {
             const isPriceUnset = i?.unit_sell_price < 1 ? true : false;
 
             return (
-              // <List.Item
-              //   key={i?.product_id}
-              //   title={i?.product_name}
-              //   onPressIn={() => setPressedId(i.product_id)}
-              //   onPressOut={() => setPressedId(null)}
-              //   onPress={() => {
-              //     setPressedId(i.product_id);
-              //     console.log(i.product_id);
-              //   }}
-              //   left={(props) => <List.Icon {...props} icon="cube-outline" />}
-              //   right={(props) => <List.Icon {...props} icon="chevron-right" />}
-              //   style={{
-              //     marginVertical: 4,
-              //     marginHorizontal: 8,
-              //     borderRadius: 8,
-              //     backgroundColor: pressedId === i.product_id ? "red" : "#fff", // makes ripple more visible
-              //   }}
-              // />
-
               <Pressable
                 key={i.product_id}
                 onPressIn={() => setPressedId(i.product_id)}
                 onPressOut={() => setPressedId(null)}
                 onPress={() => handleAddToList(i)}
+                disabled={isOutOfStock || isPriceUnset}
                 style={{
                   backgroundColor:
                     pressedId === i?.product_id
@@ -595,7 +607,15 @@ export default function PointOfSale({ theme }: Tprops) {
                   <IconButton
                     icon="checkbox-marked-circle"
                     size={18}
-                    iconColor={(theme.colors as any).success} // color
+                    iconColor={(theme.colors as any).success}
+                    style={{ padding: 0, margin: -2 }}
+                  />
+                )}
+                {(isOutOfStock || isPriceUnset) && (
+                  <IconButton
+                    icon="information-slab-circle"
+                    size={18}
+                    iconColor={(theme.colors as any).error}
                     style={{ padding: 0, margin: -2 }}
                   />
                 )}
@@ -613,6 +633,9 @@ export default function PointOfSale({ theme }: Tprops) {
                       style={{
                         width: 220,
                         color: theme.colors.onSurface,
+                        textDecorationLine: isOutOfStock
+                          ? "line-through"
+                          : "none",
                       }}>
                       {i.product_name}
                     </Text>
@@ -621,14 +644,30 @@ export default function PointOfSale({ theme }: Tprops) {
                       style={{ color: theme.colors.surfaceVariant }}>
                       {i.product_code}
                     </Text>
+                    {isOutOfStock && (
+                      <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                        Out of Stock!
+                      </Text>
+                    )}
                   </View>
                   <View style={{}}>
-                    <Text variant="bodyMedium">
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        textDecorationLine: isPriceUnset
+                          ? "line-through"
+                          : "none",
+                      }}>
                       {Intl.NumberFormat("en-NG", {
                         style: "currency",
                         currency: i.currency_code,
                       }).format(i?.unit_sell_price)}
                     </Text>
+                    {isPriceUnset && (
+                      <Text style={{ color: theme.colors.error, fontSize: 10 }}>
+                        Invalid Amount!
+                      </Text>
+                    )}
                   </View>
                 </View>
               </Pressable>
@@ -644,22 +683,25 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingHorizontal: 15,
+            //paddingHorizontal: 15,
             flexDirection: "row",
             alignItems: "center",
           }}>
-          <View style={{ flexGrow: 1 }}>
-            <PointOfSaleHeader theme={theme} />
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            {/* {previewList?.length > 0 && (
-              <Text>{previewList?.length} Selected</Text>
-            )} */}
+          <View
+            style={{
+              flexGrow: 1,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+            }}>
             <IconButton
               icon={"chevron-left"}
               size={30}
               onPress={handleGoToPointOfSale1}
             />
+            <PointOfSaleHeader theme={theme} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <IconButton
               icon={"chevron-right"}
               size={30}
@@ -667,147 +709,128 @@ export default function PointOfSale({ theme }: Tprops) {
             />
           </View>
         </View>
-        <ScrollView>
-          {previewList?.map((i) => {
-            return (
-              <View
-                key={i?.product_id}
-                style={{
-                  marginVertical: 5,
-                  marginHorizontal: 15,
-                  backgroundColor: (theme.colors as any).backgroundPaper,
-                  padding: 10,
-                  //borderWidth: 1,
-                  borderRadius: 20,
-                }}>
-                {/* <List.Item
-                  title={i?.product_name}
-                  description={`UOM: ${i?.unit_of_measure}`}
-                  right={() => (
-                    <View>
-                      <Text>
-                        {" "}
+
+        {previewList?.length < 1 && (
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+            <Text variant="bodyLarge">No Item(s) has been selected</Text>
+          </View>
+        )}
+
+        {previewList?.length > 0 && (
+          <ScrollView>
+            {previewList?.map((i) => {
+              return (
+                <View
+                  key={i?.product_id}
+                  style={{
+                    marginVertical: 5,
+                    marginHorizontal: 15,
+                    backgroundColor: (theme.colors as any).backgroundPaper,
+                    padding: 15,
+                    borderRadius: 20,
+                  }}>
+                  <View
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                    }}>
+                    <View style={{}}>
+                      <Text
+                        variant="titleSmall"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        style={{
+                          width: 220,
+                          color: theme.colors.onSurface,
+                        }}>
+                        {i.product_name}
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.surfaceVariant,
+                          //fontSize: 12,
+                        }}>
+                        Unit of Measure: {i.unit_of_measure}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                      }}>
+                      <Text variant="bodyMedium">
                         {Intl.NumberFormat("en-NG", {
                           style: "currency",
                           currency: i.currency_code,
-                        }).format(i?.unit_sell_price)}
+                        }).format(i?.total_amount)}
                       </Text>
                     </View>
-                  )}
-                /> */}
-                <View
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    justifyContent: "space-between",
-                  }}>
-                  <View style={{}}>
-                    <Text
-                      variant="titleSmall"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                      style={{
-                        width: 220,
-                        color: theme.colors.onSurface,
-                      }}>
-                      {i.product_name}
-                    </Text>
-                    <Text
-                      variant="bodyMedium"
-                      style={{
-                        color: theme.colors.surfaceVariant,
-                        fontSize: 12,
-                      }}>
-                      Unit of Measure: {i.unit_of_measure}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                    }}>
-                    <Text variant="bodyLarge">
-                      {Intl.NumberFormat("en-NG", {
-                        style: "currency",
-                        currency: i.currency_code,
-                      }).format(i?.total_amount)}
-                    </Text>
-                    {/* <IconButton
-                      icon="arrow-top-right-thin-circle-outline"
-                      size={25}
-                      style={{ margin: 0, padding: 0 }}
-                    />
-                    <IconButton
-                      icon="close-circle"
-                      size={25}
-                      style={{ margin: 0, padding: 0 }}
-                    /> */}
-                  </View>
-                </View>
-                <View
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 3,
-                    backgroundColor: theme.colors.background,
-                    borderRadius: 50,
-                  }}>
-                  <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      //backgroundColor: theme.colors.background,
-                      //borderRadius: 50,
-                    }}>
-                    <IconButton
-                      icon="minus"
-                      size={20}
-                     
-                      style={{ margin: 0, padding: 0 }}
-                      onPress={() => handleDecreaseQty(i)}
-                      disabled={i?.unit_qty === 1}
-                    />
-                    <Text>{i?.unit_qty}</Text>
-                    <IconButton
-                      icon="plus"
-                      size={20}
-                      style={{ margin: 0, padding: 0 }}
-                      onPress={() => handleIncreaseQty(i)}
-                    />
                   </View>
                   <View
                     style={{
                       display: "flex",
                       flexDirection: "row",
                       alignItems: "center",
+                      justifyContent: "space-between",
+                      marginTop: 3,
+                      backgroundColor: theme.colors.onBackground,
+                      borderRadius: 50,
                     }}>
-                    <IconButton
-                      icon="arrow-top-right-thin-circle-outline"
-                      size={20}
-                       iconColor={(theme.colors as any).info}
-                      style={{ margin: 0, padding: 0 }}
-                    />
-                    <IconButton
-                      icon="close-circle"
-                      size={20}
-                       iconColor={theme.colors.error}
-                      style={{ margin: 0, padding: 0 }}
-                      onPress={() => handleRemoveFromList(i)}
-                    />
+                    <View
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}>
+                      <IconButton
+                        icon="minus"
+                        size={20}
+                        style={{ margin: 0, padding: 0 }}
+                        onPress={() => handleDecreaseQty(i)}
+                        disabled={i?.unit_qty === 1}
+                      />
+                      <Text>{i?.unit_qty}</Text>
+                      <IconButton
+                        icon="plus"
+                        size={20}
+                        style={{ margin: 0, padding: 0 }}
+                        onPress={() => handleIncreaseQty(i)}
+                      />
+                    </View>
+                    <View
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}>
+                      <IconButton
+                        icon="arrow-top-right-thin-circle-outline"
+                        size={20}
+                        iconColor={(theme.colors as any).info}
+                        style={{ margin: 0, padding: 0 }}
+                      />
+                      <IconButton
+                        icon="close-circle"
+                        size={20}
+                        iconColor={theme.colors.error}
+                        style={{ margin: 0, padding: 0 }}
+                        onPress={() => handleRemoveFromList(i)}
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-
-        {/* <Text>Product Preview</Text>
-        <Button onPress={handleGoToPointOfSale1}>Prev</Button>
-        <Button onPress={handleGoToPointOfSale3}>Next</Button> */}
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
     );
   };
@@ -817,205 +840,363 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingTop: 40,
-            backgroundColor: (theme.colors as any).backgroundPaper,
-            display: "flex",
             flexDirection: "row",
+            alignItems: "center",
           }}>
-          <Button onPress={handleGoToPointOfSale2}>Prev</Button>
+          <View
+            style={{
+              flexGrow: 1,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+            }}>
+            <IconButton
+              icon={"chevron-left"}
+              size={30}
+              onPress={handleGoToPointOfSale2}
+            />
+            <PointOfSaleHeader theme={theme} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}></View>
         </View>
-        <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 10 }}>
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: 15,
+            display: "flex",
+            flexDirection: "column",
+          }}>
           <View
             style={{
               flexGrow: 1,
               display: "flex",
               flexDirection: "column",
-              gap: 10,
+              gap: 20,
             }}>
-            {/* <View
-              style={{
-                flexDirection: "row",
-                gap: 10,
-              }}> */}
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Subtotal"
-                outlineColor="transparent"
-                style={{
-                  backgroundColor: (theme.colors as any).backgroundPaper,
-                }}
-                value={subtotal}
-                editable={false}
-                // style={{ flex: 1 }}
-              />
-            </View>
-
-            <View>
-              <TextInput
-                mode="outlined"
-                label="V.A.T"
-                outlineColor="transparent"
-                value={vat}
-                editable={false}
-                // style={{ flex: 1 }}
-              />
-            </View>
-            {/* </View> */}
-
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Total + V.A.T"
-                outlineColor="transparent"
-                value={grandtotal}
-                editable={false}
-              />
-            </View>
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Balance"
-                outlineColor="transparent"
-                value={balance}
-                disabled
-              />
-            </View>
-          </View>
-          <View style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <View>
-              <Menu
-                visible={menuCollectionAcct}
-                onDismiss={() => setMenuPaymentChannel(false)}
-                anchor={
-                  <TextInput
-                    mode="outlined"
-                    label="Select Collection Account"
-                    value={accountItem.collection_account_id}
-                    onPressIn={() => setMenuCollectionAcct(true)}
-                  />
-                }>
-                {accountList?.map((i) => (
-                  <Menu.Item
-                    key={i.collection_account_id}
-                    title={i.account_name}
-                    onPress={() => {
-                      setAccountItem({
-                        ...accountItem,
-                        collection_account_id: i.collection_account_id,
-                        account_name: i.account_name,
-                        bank_name: i.bank_name,
-                        account_no: i.account_no,
-                      });
-                      setMenuCollectionAcct(false);
-                    }}
-                  />
-                ))}
-              </Menu>
-            </View>
-            <View>
-              <Picker
-                selectedValue={paymentChannel}
-                onValueChange={(val, idx) => setPaymentChannel(val)}>
-                {paymentChannels?.map((i) => (
-                  <Picker.Item key={i?.id} value={i?.id} label={i.name} />
-                ))}
-              </Picker>
-              <Menu
-                visible={menuPaymentChannel}
-                onDismiss={() => setMenuPaymentChannel(false)}
-                anchor={
-                  <TextInput
-                    mode="outlined"
-                    label="Select option"
-                    value={paymentChannel}
-                    onPressIn={() => setMenuPaymentChannel(true)}
-                  />
-                }>
-                {paymentChannels?.map((i) => (
-                  <Menu.Item
-                    key={i.id}
-                    title={i.name}
-                    onPress={() => {
-                      setPaymentChannel(i.id);
-                      setMenuPaymentChannel(false);
-                    }}
-                  />
-                ))}
-              </Menu>
-            </View>
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Discount Amount"
-                value={discountAmount}
-                onChangeText={(val) => setDiscountAmount(val)}
-              />
-            </View>
-            <View>
-              <TextInput
-                mode="outlined"
-                label="Paid Amount"
-                value={paidAmount}
-                onChangeText={(val) => setPaidAmount(val)}
-              />
-            </View>
-
             <View
               style={{
                 display: "flex",
-                flexDirection: "row",
+                flexDirection: "column",
                 gap: 10,
+                padding: 15,
+                backgroundColor: (theme.colors as any).backgroundPaper,
+                borderRadius: 20,
               }}>
-              <Button
-                mode="contained"
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="Subtotal"
+                  outlineColor="transparent"
+                  value={subtotal}
+                  editable={false}
+                  left={
+                    <TextInput.Affix
+                      text={renderCurrencySymbol(
+                        storeItem?.currency_code ?? ""
+                      )}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+              </View>
+
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="V.A.T"
+                  outlineColor="transparent"
+                  value={vat}
+                  editable={false}
+                  left={
+                    <TextInput.Affix
+                      text={"%"}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+              </View>
+
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="Total + V.A.T"
+                  outlineColor="transparent"
+                  value={grandtotal}
+                  editable={false}
+                  left={
+                    <TextInput.Affix
+                      text={renderCurrencySymbol(
+                        storeItem?.currency_code ?? ""
+                      )}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+              </View>
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="Balance"
+                  outlineColor="transparent"
+                  value={balance}
+                  editable={false}
+                  left={
+                    <TextInput.Affix
+                      text={renderCurrencySymbol(
+                        storeItem?.currency_code ?? ""
+                      )}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+              </View>
+            </View>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                padding: 15,
+                backgroundColor: (theme.colors as any).backgroundPaper,
+                borderRadius: 20,
+              }}>
+              <View>
+                <View
+                  style={{
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.primary,
+                  }}>
+                  <Picker
+                    selectedValue={accountSelected}
+                    onValueChange={(val, idx) => {
+                      setAccountSelected(val);
+                      setAccountSelectedErr("");
+                    }}
+                    style={{ color: theme.colors.surface }}>
+                    <Picker.Item value={""} label="Select collection account" />
+                    {accountList?.map((i) => (
+                      <Picker.Item
+                        key={i?.collection_account_id}
+                        value={i?.collection_account_id}
+                        label={i.account_name}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+                {accountSelectedErr && (
+                  <HelperText type="error">{accountSelectedErr}</HelperText>
+                )}
+              </View>
+              <View
                 style={{
-                  //borderWidth: 1,
-                  aspectRatio: "1/1",
-                  borderRadius: 10,
-                  flex: 1,
-                  justifyContent: "center",
-                  backgroundColor: (theme.colors as any).warning,
+                  borderWidth: 1,
+                  borderRadius: 5,
+                  backgroundColor: theme.colors.background,
+                  borderColor: theme.colors.primary,
                 }}>
-                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-                  Hold
-                </Text>
-              </Button>
-              <Button
-                mode="contained"
+                <Picker
+                  selectedValue={paymentChannel}
+                  onValueChange={(val, idx) => setPaymentChannel(val)}
+                  style={{ color: theme.colors.surface }}>
+                  <Picker.Item value={""} label="Select payment method" />
+                  {paymentChannels?.map((i) => (
+                    <Picker.Item key={i?.id} value={i?.id} label={i.name} />
+                  ))}
+                </Picker>
+              </View>
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="Discount Amount"
+                  value={discountAmount}
+                  onChangeText={(val) => setDiscountAmount(val)}
+                  left={
+                    <TextInput.Affix
+                      text={renderCurrencySymbol(
+                        storeItem?.currency_code ?? ""
+                      )}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+              </View>
+              <View>
+                <TextInput
+                  mode="outlined"
+                  label="Paid Amount"
+                  value={paidAmount}
+                  onChangeText={(val) => setPaidAmount(val)}
+                  onTouchStart={() => setPaidAmountErr("")}
+                  left={
+                    <TextInput.Affix
+                      text={renderCurrencySymbol(
+                        storeItem?.currency_code ?? ""
+                      )}
+                      textStyle={{ color: theme.colors.surfaceVariant }}
+                    />
+                  }
+                />
+                {paidAmountErr && (
+                  <HelperText type="error">{paidAmountErr}</HelperText>
+                )}
+              </View>
+            </View>
+          </View>
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              gap: 10,
+            }}>
+            <TouchableOpacity
+              style={{
+                aspectRatio: "1/1",
+                borderRadius: 10,
+                flex: 1,
+                justifyContent: "center",
+                backgroundColor: (theme.colors as any).warning,
+              }}>
+              <Text
                 style={{
-                  //borderWidth: 1,
-                  aspectRatio: "1/1",
-                  borderRadius: 10,
-                  flex: 1,
-                  justifyContent: "center",
-                  backgroundColor: (theme.colors as any).error,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#fff",
+                  textAlign: "center",
                 }}>
-                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-                  Clear
-                </Text>
-              </Button>
-              <Button
-                mode="contained"
+                Hold
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                aspectRatio: "1/1",
+                borderRadius: 10,
+                flex: 1,
+                justifyContent: "center",
+                backgroundColor: (theme.colors as any).error,
+              }}>
+              <Text
                 style={{
-                  //borderWidth: 1,
-                  aspectRatio: "1/1",
-                  borderRadius: 10,
-                  flex: 1,
-                  justifyContent: "center",
-                  backgroundColor: (theme.colors as any).success,
-                }}
-                onPress={handleConfirmSales}>
-                <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#fff",
+                  textAlign: "center",
+                }}>
+                Clear
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                aspectRatio: 1, // you can also use 1 instead of "1/1"
+                borderRadius: 10,
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center", // centers content horizontally
+                backgroundColor: (theme.colors as any).success,
+              }}
+              onPress={handleConfirmSales}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "700",
+                    color: "#fff",
+                    textAlign: "center",
+                  }}>
                   Confirm
                 </Text>
-              </Button>
-            </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </View>
     );
   };
 
-  return <View style={{ flex: 1 }}>{handleRenderContent()}</View>;
+  return (
+    <View style={{ flex: 1 }}>
+      {handleRenderContent()}
+
+      {bottomSheetOpen && (
+        <Modal
+          isVisible={bottomSheetOpen}
+          onBackdropPress={openBottomSheet} // tap outside to close
+          onSwipeComplete={closeBottomSheet} // swipe down to close
+          swipeDirection="down"
+          style={{ justifyContent: "flex-end", margin: 0 }}>
+          <View
+            style={{
+              backgroundColor: "white",
+              padding: 20,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+            }}>
+            <Text
+              //variant="headlineSmall"
+              style={{
+                fontWeight: 700,
+                textAlign: "center",
+                padding: 10,
+                color: theme.colors.surfaceVariant,
+                fontSize: 20,
+              }}>
+              Sales Receipt
+            </Text>
+            <View
+              ref={receiptRef}
+              style={{
+                width: "100%",
+                height: 550,
+                backgroundColor: "white",
+                overflow: "hidden",
+              }}>
+              <WebView
+                source={{ html: receipt }}
+                style={{ flex: 1, backgroundColor: "white" }}
+              />
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 10,
+              }}>
+              <Button
+                mode="outlined"
+                style={{ flex: 1 }}
+                icon={() => (
+                  <IconButton
+                    icon="image"
+                    size={20}
+                    style={{ margin: -5 }}
+                    iconColor={(theme.colors as any).info}
+                  />
+                )}
+                onPress={handleShareReceiptAsImage}>
+                Share as Image
+              </Button>
+
+              <Button
+                mode="outlined"
+                style={{ flex: 1 }}
+                icon={() => (
+                  <IconButton
+                    icon="file-pdf-box"
+                    size={20}
+                    style={{ margin: -5 }}
+                    iconColor={theme.colors.error}
+                  />
+                )}
+                onPress={handleShareReceiptAsPDF}>
+                Share as PDF
+              </Button>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
+  );
 }

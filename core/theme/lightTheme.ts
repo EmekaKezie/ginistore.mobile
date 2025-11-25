@@ -21,6 +21,7 @@ const lightTheme = {
     onTertiaryContainer: "rgb(50, 16, 23)",
 
     error: "#D32F2F",
+    errorLight: "#fdd3d3",
     onError: "rgb(255, 255, 255)",
     errorContainer: "rgb(255, 218, 214)",
     onErrorContainer: "rgb(65, 0, 2)",
@@ -33,12 +34,14 @@ const lightTheme = {
 
     background: "#F6F9FD",
     backgroundPaper: "#FFFFFF",
-    onBackground: "rgb(29, 27, 30)",
+    onBackground: "#E9ECF3",
 
     surface: "#1F1F1F",
     onSurface: "rgb(29, 27, 30)",
     surfaceVariant: "#5E5E5E",
     onSurfaceVariant: "rgb(74, 69, 78)",
+    surfaceDisabled: "#BDBDBD",
+    onSurfaceDisabled: "rgba(29, 27, 30, 0.38)",
 
     outline: "rgb(124, 117, 126)",
     outlineVariant: "rgb(204, 196, 206)",
@@ -59,9 +62,6 @@ const lightTheme = {
       level4: "rgb(239, 229, 245)",
       level5: "rgb(236, 226, 243)",
     },
-
-    surfaceDisabled: "rgba(29, 27, 30, 0.12)",
-    onSurfaceDisabled: "rgba(29, 27, 30, 0.38)",
 
     backdrop: "rgba(51, 47, 55, 0.4)",
   },

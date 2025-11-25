@@ -156,7 +156,7 @@ export default function LoginScreen() {
               <Text
                 variant="headlineMedium"
                 style={{
-                  color: theme.colors.onBackground,
+                  color: theme.colors.secondary,
                   fontWeight: 700,
                 }}>
                 Login to your account
@@ -164,7 +164,7 @@ export default function LoginScreen() {
               <Text
                 variant="bodyLarge"
                 style={{
-                  color: theme.colors.onBackground,
+                  color: theme.colors.primary,
                   fontWeight: 600,
                 }}>
                 Provide your email and password to continue
