@@ -1,19 +1,25 @@
 import { ApiGetCollectionAccounts } from "@/apis/organisationApi/collectionAccountApi";
 import { ApiGetStoreById } from "@/apis/organisationApi/storeApi";
-import { ApiGetPosProductBatches, ApiGetPosProducts } from "@/apis/posApi";
+import {
+  ApiGetPosProductBatches,
+  ApiGetPosProducts,
+  ApiPosConfirmSale,
+} from "@/apis/posApi";
 import { generateCode } from "@/core/helpers/ecryptiontHelper";
 import { paymentChannels } from "@/data/constants";
+import { useAppDispatch, useAppSelector } from "@/redux/useReduxhooks";
 import { IApiResponse } from "@/types/IApp";
 import { ICollectionAccountView } from "@/types/ICollectionAccount";
 import {
   IPosDetailInput,
+  IPosInput,
   IPosProductBatchView,
-  IPosProductsView
+  IPosProductsView,
 } from "@/types/IPos";
 import { IStoreView } from "@/types/IStore";
 import { Picker } from "@react-native-picker/picker";
-import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import {
   Button,
   IconButton,
@@ -21,14 +27,17 @@ import {
   Menu,
   Text,
   TextInput,
-  TouchableRipple,
 } from "react-native-paper";
+import PointOfSaleHeader from "./PointOfSaleHeader";
 
 type TScreen = "screen1" | "screen2" | "screen3";
 type Tprops = {
   theme: MD3Theme;
 };
 export default function PointOfSale({ theme }: Tprops) {
+  const authStore = useAppSelector((state) => state.authReducer).auth;
+  const dispatch = useAppDispatch();
+
   const initAcct: ICollectionAccountView = {
     account_name: "",
     collection_account_id: "",
@@ -61,6 +70,7 @@ export default function PointOfSale({ theme }: Tprops) {
   const [productSelected, setProductSelected] = useState<IPosProductsView[]>(
     []
   );
+  const [productRefresh, setProductRefresh] = useState(false);
   const [batchList, setBatchList] = useState<IPosProductBatchView[]>([]);
   const [batchItem, setBatchItem] = useState<IPosProductBatchView>(initBatch);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -124,6 +134,16 @@ export default function PointOfSale({ theme }: Tprops) {
     setScreen("screen3");
   };
 
+  const onProductRefresh = useCallback(() => {
+    setProductRefresh(true);
+
+    // Simulate fetching data
+    setTimeout(() => {
+      fetchProductList();
+      setProductRefresh(false);
+    }, 2000);
+  }, []);
+
   const handleSearch = (value: string) => {
     setSearchInput(value);
     const filtered = productList1?.filter(
@@ -140,32 +160,45 @@ export default function PointOfSale({ theme }: Tprops) {
   };
 
   const handleAddToList = (item: IPosProductsView) => {
-    setProductSelected((prev) => [...prev, item]);
+    const find = previewList?.find((x) => x.product_id === item.product_id);
+    if (find) {
+      const remove = previewList?.filter(
+        (x) => x.product_id !== item.product_id
+      );
+      const remove2 = productSelected?.filter(
+        (x) => x.product_id !== item.product_id
+      );
 
-    const vatAmount =
-      (Number(item.unit_sell_price) * Number(item.vat_percentage)) / 100;
+      setPreviewList(remove);
+      setProductSelected(remove2);
+    } else {
+      setProductSelected((prev) => [...prev, item]);
 
-    const modifiedItem: IPosDetailInput = {
-      product_id: item.product_id,
-      product_name: item.product_name,
-      unit_of_measure: Number(item.unit_of_measure),
-      unit_sell_price: Number(item.unit_sell_price),
-      sub_total_amount: Number(item.unit_sell_price),
-      discount_amount: 0,
-      discount_percentage: 0,
-      total_amount: Number(item.unit_sell_price) + vatAmount,
-      unit_qty: 1,
-      stock_id: item.stock_id,
-      currency_code: item.currency_code,
-      product_batch_id: "",
-      vat_amount: vatAmount,
-      vat_percentage: Number(item.vat_percentage),
-    };
+      const vatAmount =
+        (Number(item.unit_sell_price) * Number(item.vat_percentage)) / 100;
 
-    setPreviewList((previous: IPosDetailInput[]) => [
-      ...previous,
-      modifiedItem,
-    ]);
+      const modifiedItem: IPosDetailInput = {
+        product_id: item.product_id,
+        product_name: item.product_name,
+        unit_of_measure: Number(item.unit_of_measure),
+        unit_sell_price: Number(item.unit_sell_price),
+        sub_total_amount: Number(item.unit_sell_price),
+        discount_amount: 0,
+        discount_percentage: 0,
+        total_amount: Number(item.unit_sell_price) + vatAmount,
+        unit_qty: 1,
+        stock_id: item.stock_id,
+        currency_code: item.currency_code,
+        product_batch_id: "",
+        vat_amount: vatAmount,
+        vat_percentage: Number(item.vat_percentage),
+      };
+
+      setPreviewList((previous: IPosDetailInput[]) => [
+        ...previous,
+        modifiedItem,
+      ]);
+    }
   };
 
   const handleRemoveFromList = (item: IPosDetailInput) => {
@@ -227,79 +260,93 @@ export default function PointOfSale({ theme }: Tprops) {
     setDiscountPercentage(calcDiscountPercent?.toString());
   };
 
-//  const handleSaveTempData = () => {
-//     const tempData: IPosInput = {
-//       sale_code: salesCode,
-//       sub_total_amount: Number(subtotal),
-//       vat_percentage: Number(vat),
-//       vat_amount: Number(vatAmount),
-//       discount_percentage: Number(discountPercentage),
-//       discount_amount: Number(discountAmount),
-//       total_amount: Number(grandtotal),
-//       seller_user_id: authStore.user_id,
-//       seller_fullname: `${authStore.firstname} ${authStore.lastname}`,
-//       store_name: authStore.store_name,
-//       created_by: authStore.user_id,
-//       device_id: "",
-//       payment_channel: paymentChannel,
-//       collection_account_id: accountItem?.collection_account_id,
-//       paid_amount: Number(paidAmount),
-//       sale_date: new Date().toISOString(),
-//       currency_code: authStore.currency_code,
-//       sale_details: previewList,
-//     };
-//     return tempData;
-//   };
+  const handleSaveTempData = () => {
+    const tempData: IPosInput = {
+      sale_code: salesCode,
+      sub_total_amount: Number(subtotal),
+      vat_percentage: Number(vat),
+      vat_amount: Number(vatAmount),
+      discount_percentage: Number(discountPercentage),
+      discount_amount: Number(discountAmount),
+      total_amount: Number(grandtotal),
+      seller_user_id: authStore.user_id,
+      seller_fullname: `${authStore.firstname} ${authStore.lastname}`,
+      store_name: authStore.store_name,
+      created_by: authStore.user_id,
+      device_id: "",
+      payment_channel: paymentChannel,
+      collection_account_id: accountItem?.collection_account_id,
+      paid_amount: Number(paidAmount),
+      sale_date: new Date().toISOString(),
+      currency_code: authStore.currency_code,
+      sale_details: previewList,
+    };
+    return tempData;
+  };
 
+  const handleClearAll = () => {
+    setProductSelected([]);
+    setPreviewList([]);
+    setAccountItem(initAcct);
+    setPaidAmount("");
+    setDiscountAmount("");
+    setDiscountPercentage("");
+    setSalesCode(generateCode(6));
+  };
 
-  // const handleConfirmSales = async () => {
-  //   setSaving(true);
+  const handleConfirmSales = async () => {
+    setSaving(true);
 
-  //   try {
-  //     const payload = handleSaveTempData();
+    try {
+      const payload = handleSaveTempData();
 
-  //     if (payload.paid_amount < 1) {
-  //       enqueueSnackbar("Please enter the paid amount", {
-  //         variant: "default",
-  //         anchorOrigin: { vertical: "top", horizontal: "center" },
-  //       });
-  //       return;
-  //     }
+      if (payload.paid_amount < 1) {
+        // enqueueSnackbar("Please enter the paid amount", {
+        //   variant: "default",
+        //   anchorOrigin: { vertical: "top", horizontal: "center" },
+        // });
 
-  //     if (
-  //       paymentChannel !== paymentChannels[0].id &&
-  //       accountList?.length > 0 &&
-  //       !payload.collection_account_id
-  //     ) {
-  //       enqueueSnackbar("Please select collection account", {
-  //         variant: "default",
-  //         anchorOrigin: { vertical: "top", horizontal: "center" },
-  //       });
-  //       return;
-  //     }
+        console.log("Please enter the paid amount");
+        return;
+      }
 
-  //     const res: IApiResponse<any> = await ApiPosConfirmSale(payload);
+      if (
+        paymentChannel !== paymentChannels[0].id &&
+        accountList?.length > 0 &&
+        !payload.collection_account_id
+      ) {
+        // enqueueSnackbar("Please select collection account", {
+        //   variant: "default",
+        //   anchorOrigin: { vertical: "top", horizontal: "center" },
+        // });
 
-  //     if (res.status === "success") {
-  //       setReceipt(res.message);
-  //       setDialogReceipt(true);
-  //       handleClearAll();
-  //     } else {
-  //       errorHandlerHelper(res, dispatch, authStore.email);
-  //     }
-  //   } catch (error) {
-  //     enqueueSnackbar(
-  //       "Something went wrong. Please check your internet and try again",
-  //       {
-  //         variant: "default",
-  //         anchorOrigin: { vertical: "top", horizontal: "center" },
-  //       }
-  //     );
-  //   } finally {
-  //     setSaving(false);
-  //     setSalesCode(generateCode(6));
-  //   }
-  // };
+        return;
+      }
+
+      const res: IApiResponse<any> = await ApiPosConfirmSale(payload);
+      if (res.status === "success") {
+        setReceipt(res.message);
+        setDialogReceipt(true);
+        handleClearAll();
+        setScreen("screen1");
+      } else {
+        console.log(res);
+        //errorHandlerHelper(res, dispatch, authStore.email);
+      }
+    } catch (error) {
+      // enqueueSnackbar(
+      //   "Something went wrong. Please check your internet and try again",
+      //   {
+      //     variant: "default",
+      //     anchorOrigin: { vertical: "top", horizontal: "center" },
+      //   }
+      // );
+      console.log(error);
+    } finally {
+      setSaving(false);
+      setSalesCode(generateCode(6));
+    }
+  };
 
   const fetchStore = async () => {
     setStoreLoading(true);
@@ -406,29 +453,57 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingTop: 40,
-            backgroundColor: (theme.colors as any).backgroundPaper,
+            paddingHorizontal: 15,
+            flexDirection: "row",
+            alignItems: "center",
+          }}>
+          <View style={{ flexGrow: 1 }}>
+            <PointOfSaleHeader theme={theme} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {previewList?.length > 0 && (
+              <Text>{previewList?.length} Selected</Text>
+            )}
+            <IconButton
+              icon={"chevron-right"}
+              size={30}
+              onPress={handleGoToPointOfSale2}
+            />
+          </View>
+        </View>
+        <View
+          style={{
+            //backgroundColor: (theme.colors as any).backgroundPaper,
+            // borderWidth: 1,
+            //borderRadius: 50,
+            marginBottom: 10,
           }}>
           <TextInput
             value={searchInput}
             onChangeText={(text) => handleSearch(text)}
             placeholder="Search product"
-            mode="flat"
+            mode="outlined"
             focusable
             underlineColor="transparent"
-            //activeUnderlineColor="transparent"
+            activeUnderlineColor="transparent"
             left={<TextInput.Icon icon="magnify" />}
             right={
               searchInput && (
                 <TextInput.Icon icon="close" onPress={handleClearSearch} />
               )
             }
+            theme={{
+              roundness: 30, // important
+            }}
             style={{
               backgroundColor: (theme.colors as any).backgroundPaper,
+              //borderRadius: 30, // matches theme.roundness
+              marginHorizontal: 15,
+              //borderWidth: 1,
             }}
           />
         </View>
-        <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
+        {/* <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
           <TouchableRipple
             onPress={handleGoToPointOfSale2}
             borderless
@@ -458,12 +533,18 @@ export default function PointOfSale({ theme }: Tprops) {
               />
             </View>
           </TouchableRipple>
-        </View>
+        </View> */}
         {/* <Text>Product List</Text>
         <Button onPress={handleGoToPointOfSale2}>Next</Button> */}
 
         <ScrollView
-          style={{ borderWidth: 0, marginHorizontal: 20, borderRadius: 20 }}>
+          refreshControl={
+            <RefreshControl
+              refreshing={productRefresh}
+              onRefresh={onProductRefresh}
+            />
+          }
+          style={{ paddingHorizontal: 15 }}>
           {productList2?.map((i) => {
             const isSelected = !productSelected?.find(
               (x) => x.product_id === i.product_id
@@ -502,21 +583,20 @@ export default function PointOfSale({ theme }: Tprops) {
                   backgroundColor:
                     pressedId === i?.product_id
                       ? theme.colors.inversePrimary
-                      : "white",
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
+                      : (theme.colors as any).backgroundPaper,
+                  padding: 15,
                   flexDirection: "row",
-                  alignItems: "center",
-                  borderBottomWidth: 5,
+                  alignItems: "flex-start",
+                  marginVertical: 3,
                   borderBottomColor: theme.colors.background,
+                  borderRadius: 20,
                 }}>
                 {isSelected && (
                   <IconButton
-                    icon="checkbox-marked-circle" // any MaterialCommunityIcons name
-                    size={18} // icon size
-                    iconColor="black" // color
-                    style={{ padding: 0, margin: -5 }}
-                    onPress={() => {}} // optional, leave empty if just for display
+                    icon="checkbox-marked-circle"
+                    size={18}
+                    iconColor={(theme.colors as any).success} // color
+                    style={{ padding: 0, margin: -2 }}
                   />
                 )}
                 <View
@@ -526,10 +606,24 @@ export default function PointOfSale({ theme }: Tprops) {
                     justifyContent: "space-between",
                   }}>
                   <View>
-                    <Text variant="bodyLarge">{i.product_name}</Text>
+                    <Text
+                      variant="titleSmall"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={{
+                        width: 220,
+                        color: theme.colors.onSurface,
+                      }}>
+                      {i.product_name}
+                    </Text>
+                    <Text
+                      variant="bodyMedium"
+                      style={{ color: theme.colors.surfaceVariant }}>
+                      {i.product_code}
+                    </Text>
                   </View>
                   <View style={{}}>
-                    <Text variant="bodyLarge">
+                    <Text variant="bodyMedium">
                       {Intl.NumberFormat("en-NG", {
                         style: "currency",
                         currency: i.currency_code,
@@ -550,13 +644,28 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{ flex: 1 }}>
         <View
           style={{
-            paddingTop: 40,
-            backgroundColor: (theme.colors as any).backgroundPaper,
-            display: "flex",
+            paddingHorizontal: 15,
             flexDirection: "row",
+            alignItems: "center",
           }}>
-          <IconButton icon="chevron-left" onPress={handleGoToPointOfSale1} />
-          <IconButton icon="chevron-right" onPress={handleGoToPointOfSale3} />
+          <View style={{ flexGrow: 1 }}>
+            <PointOfSaleHeader theme={theme} />
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {/* {previewList?.length > 0 && (
+              <Text>{previewList?.length} Selected</Text>
+            )} */}
+            <IconButton
+              icon={"chevron-left"}
+              size={30}
+              onPress={handleGoToPointOfSale1}
+            />
+            <IconButton
+              icon={"chevron-right"}
+              size={30}
+              onPress={handleGoToPointOfSale3}
+            />
+          </View>
         </View>
         <ScrollView>
           {previewList?.map((i) => {
@@ -564,10 +673,12 @@ export default function PointOfSale({ theme }: Tprops) {
               <View
                 key={i?.product_id}
                 style={{
-                  borderBottomWidth: 5,
-                  borderBottomColor: theme.colors.background,
+                  marginVertical: 5,
+                  marginHorizontal: 15,
                   backgroundColor: (theme.colors as any).backgroundPaper,
                   padding: 10,
+                  //borderWidth: 1,
+                  borderRadius: 20,
                 }}>
                 {/* <List.Item
                   title={i?.product_name}
@@ -592,12 +703,30 @@ export default function PointOfSale({ theme }: Tprops) {
                     justifyContent: "space-between",
                   }}>
                   <View style={{}}>
-                    <Text variant="titleMedium">{i?.product_name}</Text>
-                    <Text variant="labelMedium">
-                      U.O.M: {i?.unit_of_measure}
+                    <Text
+                      variant="titleSmall"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={{
+                        width: 220,
+                        color: theme.colors.onSurface,
+                      }}>
+                      {i.product_name}
+                    </Text>
+                    <Text
+                      variant="bodyMedium"
+                      style={{
+                        color: theme.colors.surfaceVariant,
+                        fontSize: 12,
+                      }}>
+                      Unit of Measure: {i.unit_of_measure}
                     </Text>
                   </View>
-                  <View style={{ display: "flex", flexDirection: "row" }}>
+                  <View
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                    }}>
                     <Text variant="bodyLarge">
                       {Intl.NumberFormat("en-NG", {
                         style: "currency",
@@ -622,18 +751,22 @@ export default function PointOfSale({ theme }: Tprops) {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    marginTop: 3,
+                    backgroundColor: theme.colors.background,
+                    borderRadius: 50,
                   }}>
                   <View
                     style={{
                       display: "flex",
                       flexDirection: "row",
                       alignItems: "center",
-                      backgroundColor: theme.colors.background,
-                      borderRadius: 50,
+                      //backgroundColor: theme.colors.background,
+                      //borderRadius: 50,
                     }}>
                     <IconButton
                       icon="minus"
-                      size={25}
+                      size={20}
+                     
                       style={{ margin: 0, padding: 0 }}
                       onPress={() => handleDecreaseQty(i)}
                       disabled={i?.unit_qty === 1}
@@ -641,7 +774,7 @@ export default function PointOfSale({ theme }: Tprops) {
                     <Text>{i?.unit_qty}</Text>
                     <IconButton
                       icon="plus"
-                      size={25}
+                      size={20}
                       style={{ margin: 0, padding: 0 }}
                       onPress={() => handleIncreaseQty(i)}
                     />
@@ -654,12 +787,14 @@ export default function PointOfSale({ theme }: Tprops) {
                     }}>
                     <IconButton
                       icon="arrow-top-right-thin-circle-outline"
-                      size={25}
+                      size={20}
+                       iconColor={(theme.colors as any).info}
                       style={{ margin: 0, padding: 0 }}
                     />
                     <IconButton
                       icon="close-circle"
-                      size={25}
+                      size={20}
+                       iconColor={theme.colors.error}
                       style={{ margin: 0, padding: 0 }}
                       onPress={() => handleRemoveFromList(i)}
                     />
@@ -869,7 +1004,8 @@ export default function PointOfSale({ theme }: Tprops) {
                   flex: 1,
                   justifyContent: "center",
                   backgroundColor: (theme.colors as any).success,
-                }}>
+                }}
+                onPress={handleConfirmSales}>
                 <Text style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                   Confirm
                 </Text>

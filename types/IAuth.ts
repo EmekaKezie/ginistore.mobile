@@ -24,6 +24,11 @@ export interface IAuth {
   role_privileges: IRolePrivilege[];
 }
 
+export interface IAuthStore {
+  isAuthenticated: boolean;
+  auth: IAuth;
+}
+
 export type ILoginMethod = "classic" | "google_signon";
 export interface ILogin {
   email: string;

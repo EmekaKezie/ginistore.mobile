@@ -1,15 +1,14 @@
+import { useColorScheme } from "@/components/useColorScheme";
+import darkTheme from "@/core/theme/darkTheme";
+import lightTheme from "@/core/theme/lightTheme";
+import { persistor, store } from "@/redux/store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import "react-native-reanimated";
-
-import { useColorScheme } from "@/components/useColorScheme";
-import darkTheme from "@/core/theme/darkTheme";
-import lightTheme from "@/core/theme/lightTheme";
-import { persistor, store } from "@/redux/store";
 import { PaperProvider } from "react-native-paper";
+import "react-native-reanimated";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
@@ -60,8 +59,9 @@ function RootLayoutNav() {
       <PersistGate loading={null} persistor={persistor}>
         <PaperProvider theme={theme}>
           <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            {/* <Stack.Screen name="index" options={{ headerShown: false }} /> */}
+
             <Stack.Screen
               name="pos"
               options={{

@@ -1,5 +1,7 @@
 import BrandName from "@/core/brand/BrandName";
 import AuthLayout from "@/core/layout/AuthLayout";
+import { onLogin } from "@/redux/slices/authSlice";
+import { useAppDispatch } from "@/redux/useReduxhooks";
 import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
 import { Formik } from "formik";
@@ -26,9 +28,11 @@ import {
   setStorage,
 } from "../core/storage/authStorage";
 import { IApiResponse } from "../types/IApp";
-import { IAuth, ILogin } from "../types/IAuth";
+import { IAuth, IAuthStore, ILogin } from "../types/IAuth";
 
 export default function LoginScreen() {
+  const dispatch = useAppDispatch();
+
   const [biometricCompactible, setBiometricCompactible] = useState(false);
   const [biometricTypes, setBiometricTypes] = useState<
     LocalAuthentication.AuthenticationType[]
@@ -112,6 +116,12 @@ export default function LoginScreen() {
         await setStorage(AUTH_STORE_TOKEN, res?.data?.token);
         await setStorage(AUTH_STORE_ID, res?.data?.store_id);
 
+        const authStore: IAuthStore = {
+          isAuthenticated: true,
+          auth: res.data,
+        };
+        dispatch(onLogin(authStore));
+
         router.navigate("/pos" as any);
       } else {
         console.log("falied", res.data);
@@ -129,175 +139,191 @@ export default function LoginScreen() {
         <View
           style={{
             flex: 1,
-            justifyContent: "center",
-            alignItems: "stretch",
-            padding: 20,
+            paddingHorizontal: 15,
+            display: "flex",
           }}>
-          <View style={{ marginBottom: 40 }}>
+          <View style={{ paddingVertical: 20 }}>
             <BrandName />
           </View>
+          <View
+            style={{
+              flexGrow: 1,
+              display: "flex",
+              justifyContent: "center", // vertical centering
+              gap: 5,
+            }}>
+            <View style={{ marginBottom: 30, alignItems: "center" }}>
+              <Text
+                variant="headlineMedium"
+                style={{
+                  color: theme.colors.onBackground,
+                  fontWeight: 700,
+                }}>
+                Login to your account
+              </Text>
+              <Text
+                variant="bodyLarge"
+                style={{
+                  color: theme.colors.onBackground,
+                  fontWeight: 600,
+                }}>
+                Provide your email and password to continue
+              </Text>
+            </View>
 
-          <View style={{ marginBottom: 20 }}>
-            <Text
-              variant="headlineMedium"
-              style={{
-                color: theme.colors.onBackground,
-                fontWeight: 700,
-              }}>
-              Login to your account
-            </Text>
-            <Text
-              variant="bodyLarge"
-              style={{
-                color: theme.colors.onBackground,
-                fontWeight: 600,
-              }}>
-              Provide your email and password to continue
-            </Text>
-          </View>
+            <Formik
+              initialValues={{
+                email: "",
+                password: "",
+                login_method: "classic",
+              }}
+              validationSchema={Yup.object({
+                email: Yup.string().required("Email is required"),
+                password: Yup.string().required("Password is required"),
+              })}
+              onSubmit={(values: ILogin) => handleClassicLogin(values)}>
+              {(formik) => (
+                <View>
+                  <View style={{}}>
+                    <TextInput
+                      mode="outlined"
+                      label="Email"
+                      value={formik.values.email}
+                      onChangeText={formik.handleChange("email")}
+                      onBlur={formik.handleBlur("email")}
+                      error={
+                        formik.touched.email && Boolean(formik.errors.email)
+                      }
+                    />
+                    <HelperText
+                      type="error"
+                      visible={
+                        formik.touched.email && Boolean(formik.errors.email)
+                      }>
+                      {formik.errors.email}
+                    </HelperText>
+                  </View>
 
-          <Formik
-            initialValues={{
-              email: "",
-              password: "",
-              login_method: "classic",
-            }}
-            validationSchema={Yup.object({
-              email: Yup.string().required("Email is required"),
-              password: Yup.string().required("Password is required"),
-            })}
-            onSubmit={(values: ILogin) => handleClassicLogin(values)}>
-            {(formik) => (
-              <View>
-                <View style={{}}>
-                  <TextInput
-                    mode="outlined"
-                    label="Email"
-                    value={formik.values.email}
-                    onChangeText={formik.handleChange("email")}
-                    onBlur={formik.handleBlur("email")}
-                    error={formik.touched.email && Boolean(formik.errors.email)}
-                  />
-                  <HelperText
-                    type="error"
-                    visible={
-                      formik.touched.email && Boolean(formik.errors.email)
-                    }>
-                    {formik.errors.email}
-                  </HelperText>
-                </View>
-
-                <View style={{}}>
-                  <TextInput
-                    mode="outlined"
-                    label="Password"
-                    secureTextEntry
-                    value={formik.values.password}
-                    onChangeText={formik.handleChange("password")}
-                    onBlur={formik.handleBlur("password")}
-                    error={
-                      formik.touched.password && Boolean(formik.errors.password)
-                    }
-                  />
-                  <HelperText
-                    type="error"
-                    visible={
-                      formik.touched.password && Boolean(formik.errors.password)
-                    }>
-                    {formik.errors.password}
-                  </HelperText>
-                </View>
-                <View style={{ marginBottom: 30, marginLeft: "auto" }}>
-                  <Text
+                  <View style={{}}>
+                    <TextInput
+                      mode="outlined"
+                      label="Password"
+                      secureTextEntry
+                      value={formik.values.password}
+                      onChangeText={formik.handleChange("password")}
+                      onBlur={formik.handleBlur("password")}
+                      error={
+                        formik.touched.password &&
+                        Boolean(formik.errors.password)
+                      }
+                    />
+                    <HelperText
+                      type="error"
+                      visible={
+                        formik.touched.password &&
+                        Boolean(formik.errors.password)
+                      }>
+                      {formik.errors.password}
+                    </HelperText>
+                  </View>
+                  <View style={{ marginBottom: 30, marginLeft: "auto" }}>
+                    <Text
+                      style={{
+                        //color: (theme.colors as any).info,
+                        fontWeight: 700,
+                      }}>
+                      Forgot Password?
+                    </Text>
+                  </View>
+                  <View
                     style={{
-                      //color: (theme.colors as any).info,
-                      fontWeight: 700,
+                      display: "flex",
+                      flexDirection: "row",
                     }}>
-                    Forgot Password?
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    marginTop: 20,
-                  }}>
-                  <View style={{ flexGrow: 1 }}>
-                    <Button
-                      mode="contained"
-                      contentStyle={{ paddingVertical: 5 }}
-                      labelStyle={{ fontWeight: "700", fontSize: 16 }}
-                      style={{ borderRadius: 50 }}
-                      onPress={() => formik.handleSubmit()}>
-                      Login
-                    </Button>
-                  </View>
-                  <View>
-                    {hasInitStorage &&
-                      biometricCompactible &&
-                      biometricEnrolled &&
-                      biometricTypes.includes(
-                        LocalAuthentication.AuthenticationType.FINGERPRINT
-                      ) && (
-                        <IconButton
-                          icon="fingerprint"
-                          size={40}
-                          onPress={biometricLogin}
-                        />
-                      )}
+                    <View style={{ flexGrow: 1 }}>
+                      <Button
+                        mode="contained"
+                        contentStyle={{ paddingVertical: 5 }}
+                        labelStyle={{ fontWeight: "700", fontSize: 16 }}
+                        style={{ borderRadius: 50 }}
+                        onPress={() => formik.handleSubmit()}>
+                        Login
+                      </Button>
+                    </View>
+                    <View>
+                      {hasInitStorage &&
+                        biometricCompactible &&
+                        biometricEnrolled &&
+                        biometricTypes.includes(
+                          LocalAuthentication.AuthenticationType.FINGERPRINT
+                        ) && (
+                          <IconButton
+                            icon="fingerprint"
+                            size={40}
+                            onPress={biometricLogin}
+                          />
+                        )}
 
-                    {hasInitStorage &&
-                      biometricCompactible &&
-                      biometricEnrolled &&
-                      biometricTypes.includes(
-                        LocalAuthentication.AuthenticationType
-                          .FACIAL_RECOGNITION
-                      ) && (
-                        <IconButton
-                          icon="face-recognition"
-                          size={40}
-                          onPress={biometricLogin}
-                        />
-                      )}
+                      {hasInitStorage &&
+                        biometricCompactible &&
+                        biometricEnrolled &&
+                        biometricTypes.includes(
+                          LocalAuthentication.AuthenticationType
+                            .FACIAL_RECOGNITION
+                        ) && (
+                          <IconButton
+                            icon="face-recognition"
+                            size={40}
+                            onPress={biometricLogin}
+                          />
+                        )}
+                    </View>
                   </View>
                 </View>
-              </View>
+              )}
+            </Formik>
+
+            <View
+              style={{
+                flexDirection: "row",
+                marginTop: 20,
+                justifyContent: "center",
+              }}>
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.primary }}>
+                Don't have an account yet?{" "}
+              </Text>
+              <Text
+                variant="titleMedium"
+                style={{ color: theme.colors.error, fontWeight: 700 }}>
+                Create Account
+              </Text>
+            </View>
+
+            {loading && (
+              <Portal>
+                <Modal
+                  visible={loading}
+                  dismissable={false}
+                  contentContainerStyle={{}}>
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: "rgba(0,0,0,1)", // Transparent black
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}>
+                    <ActivityIndicator size="large" color="#fff" />
+                  </View>
+                </Modal>
+              </Portal>
             )}
-          </Formik>
-
-          <View style={{ flexDirection: "row", marginTop: 20 }}>
-            <Text variant="titleMedium" style={{ color: theme.colors.primary }}>
-              Don't have an account yet?{" "}
-            </Text>
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.error, fontWeight: 700 }}>
-              Create Account
-            </Text>
           </View>
-
-          {loading && (
-            <Portal>
-              <Modal
-                visible={loading}
-                dismissable={false}
-                contentContainerStyle={{}}>
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: "rgba(0,0,0,1)", // Transparent black
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}>
-                  <ActivityIndicator size="large" color="#fff" />
-                </View>
-              </Modal>
-            </Portal>
-          )}
         </View>
       )}
     </AuthLayout>
