@@ -19,6 +19,7 @@ import {
 } from "@/types/IPos";
 import { IStoreView } from "@/types/IStore";
 import { Picker } from "@react-native-picker/picker";
+import * as LocalAuthentication from "expo-local-authentication";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,19 +52,8 @@ type Tprops = {
 };
 export default function PointOfSale({ theme }: Tprops) {
   const authStore = useAppSelector((state) => state.authReducer).auth;
+  const settingStore = useAppSelector((state) => state.settingReducer);
   const dispatch = useAppDispatch();
-
-  const initAcct: ICollectionAccountView = {
-    account_name: "",
-    collection_account_id: "",
-    company_id: "",
-    bank_name: "",
-    account_no: "",
-    created_date: "",
-    created_by: "",
-    is_active: 0,
-    store_id: "",
-  };
 
   const initBatch: IPosProductBatchView = {
     batch_no: "",
@@ -353,6 +343,31 @@ export default function PointOfSale({ theme }: Tprops) {
     } finally {
       setSaving(false);
       setSalesCode(generateCode(6));
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+    let result: any;
+
+    if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+      result = await LocalAuthentication.authenticateAsync({
+        promptSubtitle: "Fingerprint Required",
+        promptMessage: "Use Face ID to securely confirm sale",
+      });
+    } else if (
+      types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
+    ) {
+      result = await LocalAuthentication.authenticateAsync({
+        promptSubtitle: "Face ID Required",
+        promptMessage: "Use Face ID to securely confirm sale",
+      });
+    } else {
+      result = true;
+    }
+
+    if (result.success) {
+      handleConfirmSales();
     }
   };
 
@@ -1080,7 +1095,13 @@ export default function PointOfSale({ theme }: Tprops) {
                 alignItems: "center", // centers content horizontally
                 backgroundColor: (theme.colors as any).success,
               }}
-              onPress={handleConfirmSales}
+              onPress={() => {
+                if (settingStore.biometricSale) {
+                  handleBiometricLogin();
+                } else {
+                  handleConfirmSales();
+                }
+              }}
               disabled={saving}>
               {saving ? (
                 <ActivityIndicator color="#fff" />

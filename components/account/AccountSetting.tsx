@@ -15,6 +15,7 @@ export default function AccountSetting({ theme, refresh }: Tprops) {
   const settingStore = useAppSelector((state) => state.settingReducer);
   const dispatch = useAppDispatch();
 
+
   return (
     <View style={{ padding: 10 }}>
       <View
@@ -75,7 +76,7 @@ export default function AccountSetting({ theme, refresh }: Tprops) {
             <Switch
               value={settingStore.biometricSale}
               onValueChange={() => {
-                dispatch(onToggleBiometricSale(settingStore.biometricSale));
+                dispatch(onToggleBiometricSale(!settingStore.biometricSale));
               }}
             />
           )}

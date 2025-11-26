@@ -33,15 +33,12 @@ export default function StoreSetting({ theme, refresh }: Tprops) {
   const [checked, setChecked] = useState("");
   const [switching, setSwitching] = useState<boolean>(false);
 
-  
-
   useEffect(() => {
     fetchStores();
   }, []);
 
   useEffect(() => {
     if (refresh) {
-      console.log("refreshing", refresh)
       fetchStores();
     }
   }, [refresh]);
