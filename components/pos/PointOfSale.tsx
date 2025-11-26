@@ -700,7 +700,6 @@ export default function PointOfSale({ theme }: Tprops) {
       <View style={{}}>
         <View
           style={{
-            //paddingHorizontal: 15,
             flexDirection: "row",
             alignItems: "center",
           }}>
@@ -773,21 +772,26 @@ export default function PointOfSale({ theme }: Tprops) {
                         variant="bodyMedium"
                         style={{
                           color: theme.colors.surfaceVariant,
-                          //fontSize: 12,
+                          fontSize: 12,
                         }}>
-                        Unit of Measure: {i.unit_of_measure}
+                        {i.unit_of_measure}{" "}
+                        {i.unit_of_measure > 1 ? "Unit" : "Units"}
                       </Text>
                     </View>
-                    <View
-                      style={{
-                        display: "flex",
-                        flexDirection: "row",
-                      }}>
+                    <View>
                       <Text variant="bodyMedium">
                         {Intl.NumberFormat("en-NG", {
                           style: "currency",
                           currency: i.currency_code,
                         }).format(i?.total_amount)}
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        style={{
+                          color: theme.colors.surfaceVariant,
+                          fontSize: 12,
+                        }}>
+                        {i.vat_percentage}% V.A.T
                       </Text>
                     </View>
                   </View>
@@ -797,7 +801,7 @@ export default function PointOfSale({ theme }: Tprops) {
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      marginTop: 3,
+                      marginTop: 5,
                       backgroundColor: theme.colors.onBackground,
                       borderRadius: 50,
                     }}>
