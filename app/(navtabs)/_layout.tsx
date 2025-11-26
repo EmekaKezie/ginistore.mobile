@@ -29,16 +29,17 @@ export default function NavTabsLayout() {
         name="pos"
         options={{
           title: "Point of Sale",
-          
+
           headerShown: false,
           tabBarIcon: () => <Icon source={"shopping-outline"} size={25} />,
         }}
       />
       <Tabs.Screen
-        name="setting"
+        name="account"
         options={{
-          title: "Settings",
-          tabBarIcon: () => <Icon source="cog" size={25} />,
+          title: "Account",
+          headerShown: false,
+          tabBarIcon: () => <Icon source="account-circle-outline" size={25} />,
         }}
       />
     </Tabs>

@@ -1,11 +1,32 @@
-import { AUTH_TOKEN, getStorage } from "@/core/storage/authStorage";
-import { IPosInput } from "@/types/IPos";
+import {
+  AUTH_TOKEN,
+  getStorage
+} from "@/core/storage/authStorage";
+import { ISwitchStore } from "@/types/IStore";
 import { api } from "./api";
 
-export const ApiGetPosProducts = async () => {
+export const ApiGetStoreById = async (id: string) => {
   const token = await getStorage(AUTH_TOKEN);
   try {
-    const url = `${api}/pos/products`;
+    const url = `${api}/store/${id}`;
+    const response = await fetch(url, {
+      method: "get",
+      //body: param,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.json();
+  } catch (error) {
+    return error;
+  }
+};
+
+export const ApiGetStoresByUserId = async (user_id: string) => {
+  const token = await getStorage(AUTH_TOKEN);
+  try {
+    const url = `${api}/store/${user_id}/stores`;
     const response = await fetch(url, {
       method: "get",
       //body: JSON.stringify(param),
@@ -20,28 +41,10 @@ export const ApiGetPosProducts = async () => {
   }
 };
 
-export const ApiGetPosProductBatches = async (product_id: string) => {
+export const ApiSwitchStore = async (param: ISwitchStore) => {
   const token = await getStorage(AUTH_TOKEN);
   try {
-    const url = `${api}/pos/products/${product_id}/batches`;
-    const response = await fetch(url, {
-      method: "get",
-      //body: JSON.stringify(param),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.json();
-  } catch (error) {
-    return error;
-  }
-};
-
-export const ApiPosConfirmSale = async (param: IPosInput) => {
-  const token = await getStorage(AUTH_TOKEN);
-  try {
-    const url = `${api}/pos/confirm_sale`;
+    const url = `${api}/store/switch_store`;
     const response = await fetch(url, {
       method: "post",
       body: JSON.stringify(param),
@@ -55,3 +58,19 @@ export const ApiPosConfirmSale = async (param: IPosInput) => {
     return error;
   }
 };
+// export const ApiCreateStore = async (token: string, param: FormData) => {
+//   try {
+//     const url = `${api}/store/create_with_upload`;
+//     const response = await fetch(url, {
+//       method: "post",
+//       body: param,
+//       headers: {
+//         //"Content-Type": "application/json",
+//         Authorization: `Bearer ${token}`,
+//       },
+//     });
+//     return response.json();
+//   } catch (error) {
+//     return error;
+//   }
+// };

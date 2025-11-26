@@ -1,10 +1,10 @@
 import { ApiGetCollectionAccounts } from "@/apis/organisationApi/collectionAccountApi";
-import { ApiGetStoreById } from "@/apis/organisationApi/storeApi";
 import {
   ApiGetPosProductBatches,
   ApiGetPosProducts,
   ApiPosConfirmSale,
 } from "@/apis/posApi";
+import { ApiGetStoreById } from "@/apis/storeApi";
 import { renderCurrencySymbol } from "@/core/helpers/currencyHelpers";
 import { generateCode } from "@/core/helpers/ecryptiontHelper";
 import { paymentChannels } from "@/data/constants";
@@ -386,7 +386,9 @@ export default function PointOfSale({ theme }: Tprops) {
   const fetchStore = async () => {
     setStoreLoading(true);
     try {
-      const res: IApiResponse<IStoreView> = await ApiGetStoreById();
+      const res: IApiResponse<IStoreView> = await ApiGetStoreById(
+        authStore.store_id
+      );
       if (res?.status === "success") {
         setStoreItem(res?.data);
         setVat(res?.data?.vat_percentage?.toString());

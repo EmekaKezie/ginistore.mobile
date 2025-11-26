@@ -59,3 +59,10 @@ export interface IStoreView {
   markup_price: number;
   markup_price_type: string;
 }
+
+export interface ISwitchStore {
+  store_id: string;
+  store_access_id: string;
+  employee_id: string;
+  company_id: string;
+}

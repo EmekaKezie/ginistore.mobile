@@ -1,8 +1,8 @@
-import { AUTH_STORE_TOKEN, getStorage } from "@/core/storage/authStorage";
+import { AUTH_TOKEN, getStorage } from "@/core/storage/authStorage";
 import { api } from "../api";
 
 export const ApiGetCollectionAccounts = async () => {
-  const token = await getStorage(AUTH_STORE_TOKEN);
+  const token = await getStorage(AUTH_TOKEN);
   try {
     const url = `${api}/collectionaccount/get_collection_accounts/store`;
     const response = await fetch(url, {
