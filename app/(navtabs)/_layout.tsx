@@ -22,6 +22,7 @@ export default function NavTabsLayout() {
         name="index"
         options={{
           title: "Dashbaord",
+          headerShown: false,
           tabBarIcon: () => <Icon source="view-dashboard-outline" size={25} />,
         }}
       />
@@ -29,7 +30,6 @@ export default function NavTabsLayout() {
         name="pos"
         options={{
           title: "Point of Sale",
-
           headerShown: false,
           tabBarIcon: () => <Icon source={"shopping-outline"} size={25} />,
         }}

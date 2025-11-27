@@ -27,9 +27,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   findNodeHandle,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
+  StatusBar,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -1142,7 +1144,11 @@ export default function PointOfSale({ theme }: Tprops) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+      }}>
       {handleRenderContent()}
 
       {bottomSheetOpen && (

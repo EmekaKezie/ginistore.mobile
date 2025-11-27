@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Platform, StatusBar } from "react-native";
 import { MD3Theme, useTheme } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,7 +14,7 @@ export default function PosLayout(props: TProps) {
       style={{
         flex: 1,
         backgroundColor: theme.colors.background,
-        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+        //paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}>
       {props.children(theme)}
     </SafeAreaView>

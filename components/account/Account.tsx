@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  View,
+} from "react-native";
 import { Avatar, MD3Theme } from "react-native-paper";
 import AccountInfo from "./AccountInfo";
 import AccountSetting from "./AccountSetting";
@@ -20,7 +26,11 @@ export default function Account({ theme }: Tprops) {
   }, []);
 
   return (
-    <View>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+      }}>
       <View
         style={{
           flexDirection: "column",
@@ -30,6 +40,7 @@ export default function Account({ theme }: Tprops) {
         <Avatar.Icon size={80} icon={"account-circle-outline"} />
       </View>
       <ScrollView
+        contentContainerStyle={{ paddingBottom: 60 }}
         refreshControl={
           <RefreshControl refreshing={refresh} onRefresh={handleRefresh} />
         }>
@@ -38,8 +49,6 @@ export default function Account({ theme }: Tprops) {
         <AccountSetting theme={theme} refresh={refresh} />
 
         <StoreSetting theme={theme} refresh={refresh} />
-
-        <View style={{ paddingVertical: 35 }}></View>
       </ScrollView>
     </View>
   );

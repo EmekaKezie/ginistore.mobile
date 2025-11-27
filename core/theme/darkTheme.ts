@@ -11,7 +11,7 @@ const darkTheme = {
     primaryContainer: "rgb(95, 43, 146)",
     onPrimaryContainer: "rgb(240, 219, 255)",
 
-    secondary: "#C0C8D0",
+    secondary: "#082651",
     onSecondary: "rgb(54, 44, 63)",
     secondaryContainer: "rgb(77, 67, 87)",
     onSecondaryContainer: "rgb(237, 221, 246)",
