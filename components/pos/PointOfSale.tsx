@@ -19,6 +19,7 @@ import {
 } from "@/types/IPos";
 import { IStoreView } from "@/types/IStore";
 import { Picker } from "@react-native-picker/picker";
+import * as Clipboard from "expo-clipboard";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -39,6 +40,7 @@ import {
   HelperText,
   IconButton,
   MD3Theme,
+  Snackbar,
   Text,
   TextInput,
 } from "react-native-paper";
@@ -101,6 +103,7 @@ export default function PointOfSale({ theme }: Tprops) {
   const [dialogSetting, setDialogSetting] = useState(false);
   const [menuPaymentChannel, setMenuPaymentChannel] = useState(false);
   const [menuCollectionAcct, setMenuCollectionAcct] = useState(false);
+  const [showCopiedTooltip, setShowCopiedTooltip] = useState(false);
 
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const openBottomSheet = () => setBottomSheetOpen(true);
@@ -942,6 +945,17 @@ export default function PointOfSale({ theme }: Tprops) {
                     textStyle={{ color: theme.colors.surfaceVariant }}
                   />
                 }
+                right={
+                  <TextInput.Icon
+                    icon="content-copy"
+                    size={24}
+                    onPress={() => {
+                      Clipboard.setStringAsync(grandtotal);
+                      setShowCopiedTooltip(true);
+                      setTimeout(() => setShowCopiedTooltip(false), 1000);
+                    }}
+                  />
+                }
               />
             </View>
             <View>
@@ -1145,17 +1159,28 @@ export default function PointOfSale({ theme }: Tprops) {
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
             }}>
-            <Text
-              //variant="headlineSmall"
+            <View
               style={{
-                fontWeight: 700,
-                textAlign: "center",
-                padding: 10,
-                color: theme.colors.surfaceVariant,
-                fontSize: 20,
+                flexDirection: "row",
+                justifyContent: "space-between",
               }}>
-              Sales Receipt
-            </Text>
+              <Text
+                style={{
+                  fontWeight: 700,
+                  color: theme.colors.surfaceVariant,
+                  fontSize: 20,
+                }}>
+                Sales Receipt
+              </Text>
+              <IconButton
+                icon="close"
+                onPress={() => {
+                  closeBottomSheet();
+                  handleClearAll();
+                }}
+              />
+            </View>
+
             <View
               ref={receiptRef}
               style={{
@@ -1206,6 +1231,15 @@ export default function PointOfSale({ theme }: Tprops) {
             </View>
           </View>
         </Modal>
+      )}
+
+      {showCopiedTooltip && (
+        <Snackbar
+          visible={showCopiedTooltip}
+          onDismiss={() => setShowCopiedTooltip(false)}
+          duration={1000}>
+          Copied!
+        </Snackbar>
       )}
     </View>
   );
