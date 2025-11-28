@@ -1,7 +1,7 @@
 import {
-    AUTH_EMAIL,
-    AUTH_PASSWORD,
-    getStorage,
+  AUTH_EMAIL,
+  AUTH_PASSWORD,
+  getStorage,
 } from "@/core/storage/authStorage";
 import { useAppSelector } from "@/redux/useReduxhooks";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -67,9 +67,7 @@ export default function Login({ theme }: Tprops) {
           biometricSubtitle={"Use Face ID to securely log in"}
         />
       );
-    }
-
-    if (
+    } else if (
       settingStore.biometricLogin &&
       hasInitStorage &&
       biometricCompactible &&
@@ -85,9 +83,7 @@ export default function Login({ theme }: Tprops) {
           biometricSubtitle={"Use Face ID to securely log in"}
         />
       );
-    }
-
-    return <LoginClassic theme={theme} />;
+    } else return <LoginClassic theme={theme} />;
   };
   return <View style={{ flex: 1 }}>{handleRenderContent()}</View>;
 }

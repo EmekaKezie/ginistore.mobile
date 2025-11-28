@@ -1,5 +1,5 @@
 import { apiLogin } from "@/apis/authApis";
-import BrandName from "@/core/brand/BrandName";
+import BrandNameWhite from "@/core/brand/BrandNameWhite";
 import {
   AUTH_EMAIL,
   AUTH_PASSWORD,
@@ -15,7 +15,13 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, View } from "react-native";
-import { ActivityIndicator, MD3Theme, Modal, Portal } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  MD3Theme,
+  Modal,
+  Portal,
+} from "react-native-paper";
 
 type Tprops = {
   theme: MD3Theme;
@@ -31,25 +37,34 @@ export default function LoginBiometrics({
   const dispatch = useAppDispatch();
 
   const [loading, setLoading] = useState(false);
+  const [start, setStart] = useState(false);
 
   useEffect(() => {
-    biometricLogin();
-  }, []);
+    if (start) {
+      biometricLogin();
+    }
+  }, [start]);
 
   const biometricLogin = async () => {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptSubtitle: biometricSubtitle,
-      promptMessage: biometricTitle,
-    });
+    setStart(true);
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptSubtitle: biometricSubtitle,
+        promptMessage: biometricTitle,
+      });
 
-    if (result.success) {
-      const payload: ILogin = {
-        email: (await getStorage(AUTH_EMAIL)) || "",
-        password: (await getStorage(AUTH_PASSWORD)) || "",
-        login_method: "classic",
-      };
+      if (result.success) {
+        const payload: ILogin = {
+          email: (await getStorage(AUTH_EMAIL)) || "",
+          password: (await getStorage(AUTH_PASSWORD)) || "",
+          login_method: "classic",
+        };
 
-      await handleClassicLogin(payload);
+        await handleClassicLogin(payload);
+      }
+    } catch (error) {
+    } finally {
+      setStart(false);
     }
   };
 
@@ -84,9 +99,28 @@ export default function LoginBiometrics({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.primary }}>
-      <View style={{ paddingVertical: 20, paddingHorizontal: 15 }}>
-        <BrandName />
+    <View style={{ flex: 1, backgroundColor: theme.colors.secondary }}>
+      <View
+        style={{
+          // borderWidth: 1,
+          // borderColor: "white",
+          flex: 1,
+          flexDirection: "column",
+          marginTop: 100,
+          alignItems: "center",
+        }}>
+        <View style={{ paddingVertical: 20, paddingHorizontal: 15 }}>
+          <BrandNameWhite />
+        </View>
+
+        <View>
+          <Button
+            //textColor="#FFF"
+            style={{ backgroundColor: (theme.colors as any).backgroundPaper }}
+            onPress={() => setStart(true)}>
+            Biometric Login
+          </Button>
+        </View>
       </View>
 
       {loading && (
@@ -102,7 +136,7 @@ export default function LoginBiometrics({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(0,0,0,1)", // Transparent black
+                backgroundColor: "rgba(0,0,0,0.1)", // Transparent black
                 justifyContent: "center",
                 alignItems: "center",
               }}>
